@@ -2,7 +2,7 @@ import json
 import re
 
 username = ''
-hero = {'Name': "John", 'Species': "human", 'Gender': "male"}
+char_attrs = {'Name': "John", 'Species': "human", 'Gender': "male"}
 inventory = {'Snack': "apple", 'Weapon': "sword", 'Tool': "rope"}
 difficulty = {'1': "Easy", '2': "Medium", '3': "Hard"}
 
@@ -22,9 +22,9 @@ def menu():
 
 def set_hero():
     print("Create your character:")
-    hero['Name'] = input('1- Name ').capitalize()
-    hero['Species'] = input('2- Species ').capitalize()
-    hero['Gender'] = input('3- Gender ').capitalize()
+    char_attrs['Name'] = input('1- Name ').capitalize()
+    char_attrs['Species'] = input('2- Species ').capitalize()
+    char_attrs['Gender'] = input('3- Gender ').capitalize()
 
 
 def set_tools():
@@ -42,6 +42,7 @@ Choose your difficulty:
 1- Easy
 2- Medium
 3- Hard""")
+    old_level = level
     while True:
         lvl = input().lower()
         if lvl in ['1', 'easy']:
@@ -57,10 +58,12 @@ Choose your difficulty:
             print("Unknown input! Please enter a valid one.")
             continue
         break
+    if old_level != level:
+        save_game()
 
 
 def info():
-    print(f"Your character: {hero['Name']}, {hero['Species']}, {hero['Gender']}")
+    print(f"Your character: {char_attrs['Name']}, {char_attrs['Species']}, {char_attrs['Gender']}")
     print(f"Your inventory: {inventory['Snack']}, {inventory['Weapon']}, {inventory['Tool']}")
     print(f"Difficulty: {difficulty[str(level)]}")
     print(f"Number of lives: {lives}")
@@ -103,7 +106,7 @@ Commands you can use:
 
 
 def do_effect(eff):
-    global lives, loop, scene
+    global lives, loop, scene, level
     tasks = eff.split(' and ')
     # print('All tasks:')
     for task in tasks:
@@ -127,13 +130,32 @@ def do_effect(eff):
                 scene += 1
             # print(f"Scene - {scene}")
         elif 'save' in task:
+            level += 1
             save_game()
         elif 'game_won' in task:
             won_game()
 
 
 def save_game():
-    print('Save game')
+    fn = f'game/saves/{username}.json'
+    d = {
+        "char_attrs": {
+            "name": char_attrs['Name'],
+            "species": char_attrs['Species'],
+            "gender": char_attrs['Gender']
+        },
+        "inventory": {
+            "snack": inventory['Snack'],
+            "weapon": inventory['Weapon'],
+            "tool": inventory['Tool']
+        },
+        "lives": lives,
+        "difficulty": "Easy",
+        "level": level
+    }
+    print(f'Save game in {fn}')
+    with open(fn, 'w') as fl:
+        json.dump(d, fl)
 
 
 def won_game():
@@ -197,7 +219,7 @@ def game_loop():
         elif ch == '/i':
             print(f"Inventory: {list(inventory.values())}")
         elif ch == '/c':
-            print(f"Your character: {list(hero.values())}")
+            print(f"Your character: {list(char_attrs.values())}")
             print(f"Lives remaining: {lives}")
         elif ch == '/h':
             help()
