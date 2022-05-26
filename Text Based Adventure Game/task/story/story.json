@@ -10,7 +10,9 @@
     },
     "lvl2": {
       "title": "Level 2",
-      "scenes": {}
+      "scenes": {
+        "scene1": "You woke up."
+      }
     }
   },
   "outcomes": {
@@ -33,6 +35,13 @@
         "outcome2": "The darkness says 'Wrong!'. You try to run but it catches you from your legs and drags you to darkness... (life-1)\n",
         "outcome3": "The darkness says 'Correct! You may pass traveller.'\nYou saw a light coming from the inner cave and you follow it. (move and save),"
       }
+    },
+    "lvl2": {
+      "scene1": {
+        "outcome1": "Bro, no. (life-1)\n",
+        "outcome2": "You found nothing. No, really. (inventory+'nothing' and repeat)\n",
+        "outcome3": "You think about eating the {snack}. (game_won)\n"
+      }
     }
   },
   "choices": {
@@ -51,6 +60,13 @@
         "choice1": "A hummingbird.\n",
         "choice2": "A mosquito.\n",
         "choice3": "A bumblebee.\n"
+      }
+    },
+    "lvl2": {
+      "scene1": {
+        "choice1": "Stay in bed.",
+        "choice2": "See what's beneath your pillow.",
+        "choice3": "Get up."
       }
     }
   }

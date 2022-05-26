@@ -1,12 +1,12 @@
 import json
-import re
+import os
 
 username = ''
-char_attrs = {'Name': "John", 'Species': "human", 'Gender': "male"}
-inventory = {'Snack': "apple", 'Weapon': "sword", 'Tool': "rope"}
-difficulty = {'1': "Easy", '2': "Medium", '3': "Hard"}
+char_attrs = {'name': "John", 'species': "human", 'gender': "male"}
+inventory = {'snack': "apple", 'weapon': "sword", 'tool': "rope"}
 
 data = {}
+difficulty = "Easy"
 scene = 1
 level = 1
 lives = 5
@@ -22,50 +22,46 @@ def menu():
 
 def set_hero():
     print("Create your character:")
-    char_attrs['Name'] = input('1- Name ').capitalize()
-    char_attrs['Species'] = input('2- Species ').capitalize()
-    char_attrs['Gender'] = input('3- Gender ').capitalize()
+    char_attrs['name'] = input('1- Name ').capitalize()
+    char_attrs['species'] = input('2- Species ').capitalize()
+    char_attrs['gender'] = input('3- Gender ').capitalize()
 
 
 def set_tools():
     print("Pack your bag for the journey:")
-    inventory['Snack'] = input('1- Favourite Snack ').capitalize()
-    inventory['Weapon'] = input('2- A weapon for the journey ').capitalize()
-    inventory['Tool'] = input('3- A traversal tool ').capitalize()
+    inventory['snack'] = input('1- Favourite Snack ').capitalize()
+    inventory['weapon'] = input('2- A weapon for the journey ').capitalize()
+    inventory['tool'] = input('3- A traversal tool ').capitalize()
 
 
 def set_level():
-    global level
-    global lives
+    global level, lives, difficulty
     print("""
 Choose your difficulty:
 1- Easy
 2- Medium
 3- Hard""")
-    old_level = level
     while True:
         lvl = input().lower()
         if lvl in ['1', 'easy']:
-            level = 1
+            difficulty = 'Easy'
             lives = 5
         elif lvl in ['2', 'medium']:
-            level = 2
+            difficulty = 'Medium'
             lives = 3
         elif lvl in ['3', 'hard']:
-            level = 3
+            difficulty = 'Hard'
             lives = 1
         else:
             print("Unknown input! Please enter a valid one.")
             continue
         break
-    if old_level != level:
-        save_game()
 
 
 def info():
-    print(f"Your character: {char_attrs['Name']}, {char_attrs['Species']}, {char_attrs['Gender']}")
-    print(f"Your inventory: {inventory['Snack']}, {inventory['Weapon']}, {inventory['Tool']}")
-    print(f"Difficulty: {difficulty[str(level)]}")
+    print(f"Your character: {char_attrs['name']}, {char_attrs['species']}, {char_attrs['gender']}")
+    print(f"Your inventory: {inventory['snack']}, {inventory['weapon']}, {inventory['tool']}")
+    print(f"Difficulty: {difficulty}")
     print(f"Number of lives: {lives}")
 
 
@@ -84,7 +80,7 @@ def start():
     return True
 
 
-def load_data():
+def load_story():
     global data
     fn = 'story/story.json'
     try:
@@ -105,12 +101,65 @@ Commands you can use:
 """)
 
 
+def save_game():
+    global char_attrs, inventory, level, lives, difficulty, username
+    fn = f'game/saves/{username}.json'
+    d = {
+        "char_attrs": {
+            "name": char_attrs['name'],
+            "species": char_attrs['species'],
+            "gender": char_attrs['gender']
+        },
+        "inventory": {
+            "snack": inventory['snack'],
+            "weapon": inventory['weapon'],
+            "tool": inventory['tool']
+        },
+        "lives": lives,
+        "difficulty": difficulty,
+        "level": level
+    }
+    with open(fn, 'w') as fl:
+        json.dump(d, fl)
+
+
+def load_file():
+    global char_attrs, inventory, level, lives, difficulty, username
+    fdir = 'game/saves/'
+    fns = os.listdir(fdir)
+    fns = [f[: -5] for f in fns if f[-5:] == '.json']
+    if fns:
+        print("Choose your user name from the list: ")
+        print('\n'.join(fns))
+        username = input("Type your user name from the list: ")
+        fn = fdir + username + '.json'
+        try:
+            with open(fn, 'r') as fl:
+                d = json.load(fl)
+                if d:
+                    print("Loading your progress...")
+                    char_attrs = d['char_attrs']
+                    inventory = d['inventory']
+                    lives = d['lives']
+                    level = d['level']
+                    difficulty = d['difficulty']
+                    return True
+        except Exception:
+            found = False
+    print("No save data found!")
+    return False
+
+
+def won_game():
+    global lives
+    print('Congratulations! You beat the game!')
+    lives = -1
+
+
 def do_effect(eff):
     global lives, loop, scene, level
     tasks = eff.split(' and ')
-    # print('All tasks:')
     for task in tasks:
-        # print(task)
         if 'inventory+' in task:
             key = task[11: -1].capitalize()
             inventory[key] = key
@@ -125,59 +174,30 @@ def do_effect(eff):
         elif 'life-1' in task:
             lives -= 1
             print(f"You died! Lives remaining: {lives}")
+            scene = 1
         elif 'move' in task:
             if scene < 3:
                 scene += 1
-            # print(f"Scene - {scene}")
         elif 'save' in task:
             level += 1
+            scene = 1
             save_game()
         elif 'game_won' in task:
             won_game()
 
 
-def save_game():
-    fn = f'game/saves/{username}.json'
-    d = {
-        "char_attrs": {
-            "name": char_attrs['Name'],
-            "species": char_attrs['Species'],
-            "gender": char_attrs['Gender']
-        },
-        "inventory": {
-            "snack": inventory['Snack'],
-            "weapon": inventory['Weapon'],
-            "tool": inventory['Tool']
-        },
-        "lives": lives,
-        "difficulty": "Easy",
-        "level": level
-    }
-    print(f'Save game in {fn}')
-    with open(fn, 'w') as fl:
-        json.dump(d, fl)
-
-
-def won_game():
-    print('You won game!')
-
-
 def game_loop():
     global loop, level, scene, lives
-    scene = 1
-    level = 1
-    lives = 5
 
     while True:
         lvl = 'lvl' + str(level)
         scn = 'scene' + str(scene)
-        if not data['story'].get(lvl):
+        if lives < 0 or not data['story'].get(lvl):
             loop = False
             print("Goodbye!")
             return
-        print()
         print(data['story'][lvl]['title'])
-        if not data['story'][lvl]['scenes']:
+        if not data['story'][lvl]['scenes'][scn]:
             loop = False
             print("Goodbye!")
             return
@@ -189,7 +209,6 @@ def game_loop():
         ch = input()
         if ch in ['1', '2', '3']:
             outcome = 'outcome' + ch
-            # print(f"lvl={lvl}, scn={scn}, outcome={outcome}")
             out = data['outcomes'][lvl][scn][outcome]
             if isinstance(out, dict):
                 if inventory.get('Key'):
@@ -206,12 +225,11 @@ def game_loop():
                 text = out[:i].strip()
                 to_do = out[i + 1: j]
             i = text.find('{')
+            j = text.find('}')
             if i > 0:
-                word = text[i + 1: -1].capitalize()
+                word = text[i + 1: j]
                 text = text[: i] + inventory[word]
-            # print(out)
             print(text)
-            # print(to_do)
             do_effect(to_do)
             if lives == 0:
                 print("You've run out of lives! Game over!")
@@ -233,17 +251,16 @@ def game_loop():
             print("Unknown input! Please enter a valid one.")
 
 
-load_data()
+load_story()
 while loop:
     menu()
     cmd = input().lower()
     if cmd in ['1', 'start']:
         if start():
             game_loop()
-        else:
-            continue
     elif cmd in ['2', 'load']:
-        print("No save data found!")
+        if load_file():
+            game_loop()
     elif cmd in ['3', 'quit']:
         print("Goodbye!")
         break
